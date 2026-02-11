@@ -4,19 +4,18 @@ interface EmptyStateProps {
 
 export function EmptyState({ onAddClick }: EmptyStateProps) {
   return (
-    <div className="text-center py-12">
-      <div className="text-6xl mb-4">📝</div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">
-        No habits yet
+    <div className="text-center py-14 px-6 rounded-3xl bg-[#f6f7fa] border border-black/5">
+      <h2 className="text-2xl font-semibold text-[#111319] mb-2 tracking-tight">
+        Start your first habit
       </h2>
-      <p className="text-gray-600 mb-6 max-w-xs mx-auto">
-        Start building better habits by adding your first one. Small steps lead to big changes!
+      <p className="text-[#7f838d] mb-6 max-w-xs mx-auto">
+        Add one daily action and track it with the same rhythm each week.
       </p>
       <button
         onClick={onAddClick}
-        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+        className="inline-flex items-center px-5 py-2.5 bg-[#111319] text-white font-medium rounded-full hover:bg-black"
       >
-        Add your first habit
+        + Add habit
       </button>
     </div>
   )

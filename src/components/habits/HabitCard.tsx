@@ -1,16 +1,21 @@
+import { Flame } from "lucide-react";
+import { getPastDays, getLocalDateString } from "../../lib/utils";
+
 interface HabitCardProps {
-  id: string
-  name: string
-  description?: string | null
-  completedToday: boolean
-  currentStreak: number
-  motivationNote?: string | null
-  categoryName?: string | null
-  frequencyType?: 'daily' | 'weekly'
-  frequencyValue?: number
-  weeklyCompletions?: number
-  onToggle: () => void
-  onClick?: () => void
+  id: string;
+  name: string;
+  description?: string | null;
+  completedToday: boolean;
+  currentStreak: number;
+  motivationNote?: string | null;
+  categoryName?: string | null;
+  frequencyType?: "daily" | "weekly";
+  frequencyValue?: number;
+  weeklyCompletions?: number;
+  completionDates?: string[];
+  onToggle: () => void;
+  onDateToggle?: (date: string) => void;
+  onClick?: () => void;
 }
 
 export function HabitCard({
@@ -20,43 +25,82 @@ export function HabitCard({
   currentStreak,
   motivationNote,
   categoryName,
-  frequencyType = 'daily',
+  frequencyType = "daily",
   frequencyValue = 1,
   weeklyCompletions = 0,
+  completionDates = [],
   onToggle,
+  onDateToggle,
   onClick,
 }: HabitCardProps) {
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onToggle()
-  }
+  const today = getLocalDateString();
+  const displayDays = getPastDays(7).reverse();
+  const completedSet = new Set(completionDates);
+  const monthLabel = new Date(displayDays[0] + "T00:00:00")
+    .toLocaleDateString("en-US", { month: "short" })
+    .toLowerCase();
+  const isWeekly = frequencyType === "weekly";
+  const weeklyProgress = isWeekly
+    ? `${weeklyCompletions}/${frequencyValue}`
+    : null;
 
-  const isWeekly = frequencyType === 'weekly'
-  const weeklyProgress = isWeekly ? `${weeklyCompletions}/${frequencyValue}` : null
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggle();
+  };
+
+  const handleDateToggle = (e: React.MouseEvent, date: string) => {
+    e.stopPropagation();
+    onDateToggle?.(date);
+  };
 
   return (
     <div
       onClick={onClick}
-      className={`
-        p-4 rounded-xl border transition-all cursor-pointer
-        ${completedToday
-          ? 'bg-green-50 border-green-200'
-          : 'bg-white border-gray-200 hover:border-gray-300'
-        }
-      `}
+      className="relative overflow-hidden p-4 sm:p-5 rounded-3xl border border-black/5 bg-white transition-all cursor-pointer hover:shadow-[0_10px_30px_rgba(17,17,17,0.08)]"
     >
-      <div className="flex items-start gap-3">
+      {currentStreak > 0 && (
+        <div className="pointer-events-none absolute right-[7%] h-[120%] flex items-center text-[#111319]/12">
+          <span className="text-[7.5rem] sm:text-[25rem] leading-none font-semibold tabular-nums">
+            {currentStreak}
+          </span>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 pr-16 sm:pr-20">
+          <h3 className="font-semibold text-[clamp(1.1rem,2.3vw,1.5rem)] leading-[1.1] text-[#101114] break-words">
+            {name}
+          </h3>
+
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {categoryName && (
+              <span className="text-[11px] tracking-[0.14em] uppercase text-[#8f9298]">
+                {categoryName}
+              </span>
+            )}
+            {weeklyProgress && (
+              <span className="text-[11px] tracking-[0.14em] uppercase text-[#8f9298]">
+                {weeklyProgress}/wk
+              </span>
+            )}
+          </div>
+        </div>
+
         <button
           onClick={handleToggle}
           className={`
-            flex-shrink-0 w-7 h-7 mt-0.5 rounded-full border-2 flex items-center justify-center
+            flex-shrink-0 w-9 h-9 rounded-full border flex items-center justify-center
             transition-all
-            ${completedToday
-              ? 'bg-green-500 border-green-500 text-white habit-complete'
-              : 'border-gray-300 hover:border-green-400'
+            ${
+              completedToday
+                ? "bg-[#111319] border-[#111319] text-white habit-complete"
+                : "border-[#c9ccd3] text-[#8f9298] hover:border-[#111319]"
             }
           `}
-          aria-label={completedToday ? 'Mark as incomplete' : 'Mark as complete'}
+          aria-label={
+            completedToday ? "Mark as incomplete" : "Mark as complete"
+          }
         >
           {completedToday && (
             <svg
@@ -74,46 +118,68 @@ export function HabitCard({
             </svg>
           )}
         </button>
+      </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3
-              className={`font-medium ${
-                completedToday ? 'text-green-800' : 'text-gray-900'
-              }`}
-            >
-              {name}
-            </h3>
-            {currentStreak > 0 && (
-              <span className="flex items-center gap-0.5 text-xs font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-full">
-                <span>🔥</span>
-                <span>{currentStreak}</span>
-              </span>
-            )}
-            {weeklyProgress && (
-              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
-                {weeklyProgress}/wk
-              </span>
-            )}
-          </div>
+      <p className="mt-5 text-[12px] lowercase tracking-[0.08em] text-[#a2a5ac]">
+        {monthLabel}
+      </p>
 
-          {categoryName && (
-            <span className="inline-block mt-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-              {categoryName}
-            </span>
-          )}
+      <div className="mt-2 overflow-x-auto py-1 -mx-1 px-1">
+        <div className="flex gap-2 min-w-max">
+          {displayDays.map((date) => {
+            const dateObj = new Date(date + "T00:00:00");
+            const isToday = date === today;
+            const isDone = completedSet.has(date);
 
+            return (
+              <div key={date} className="w-9 sm:w-10 text-center">
+                <button
+                  type="button"
+                  onClick={(e) => handleDateToggle(e, date)}
+                  aria-label={`Toggle ${name} for ${dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                  className={`
+                    w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold
+                    ${
+                      isDone
+                        ? "bg-[#111319] text-white"
+                        : "bg-[#f1f2f5] text-[#1d1f24]"
+                    }
+                    ${isToday ? "border-2 border-[#d7dae0]" : "border-2 border-transparent"}
+                    hover:border-[#111319] active:scale-[0.98]
+                  `}
+                >
+                  {dateObj.getDate()}
+                </button>
+                <div className="mt-2 text-[11px] text-[#a2a5ac]">
+                  {dateObj
+                    .toLocaleDateString("en-US", { weekday: "short" })
+                    .charAt(0)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <div className="min-w-0 flex-1 pr-16 sm:pr-20">
           {description && (
-            <p className="text-sm text-gray-500 mt-1 line-clamp-1">{description}</p>
+            <p className="text-sm text-[#7c8087] line-clamp-1">{description}</p>
           )}
 
           {motivationNote && (
-            <p className="text-xs text-gray-400 mt-1 italic line-clamp-1">
+            <p className="text-xs text-[#9a9ea7] mt-1 italic line-clamp-1">
               "{motivationNote}"
             </p>
           )}
         </div>
+
+        {currentStreak > 0 && (
+          <div className="flex-shrink-0 inline-flex items-center gap-2 text-[#111319]">
+            <Flame className="w-8 h-8" strokeWidth={2.2} aria-hidden="true" />
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }

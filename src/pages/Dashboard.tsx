@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useHabits } from '../hooks/useHabits'
 import { useCompletions } from '../hooks/useCompletions'
@@ -8,18 +8,15 @@ import { HabitList } from '../components/habits/HabitList'
 import { AddHabitForm } from '../components/habits/AddHabitForm'
 import { HabitDetailModal } from '../components/habits/HabitDetailModal'
 import { EditHabitModal } from '../components/habits/EditHabitModal'
-import { PointsDisplay } from '../components/gamification/PointsDisplay'
-import { AchievementsList } from '../components/gamification/AchievementsList'
 import { AchievementNotification } from '../components/gamification/AchievementNotification'
 import { calculatePoints } from '../lib/achievements'
+import { getLocalDateString } from '../lib/utils'
 import type { CreateHabitInput } from '../lib/types'
 
 export function Dashboard() {
   const { habits, loading, error, createHabit, updateHabit, toggleCompletion, deleteHabit, refetch } = useHabits()
   const { togglePastCompletion } = useCompletions()
   const {
-    totalPoints,
-    achievements,
     newAchievement,
     awardPoints,
     checkAndUnlockAchievements,
@@ -34,17 +31,11 @@ export function Dashboard() {
 
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null)
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null)
-  const [showAchievements, setShowAchievements] = useState(false)
-  const addFormRef = useRef<HTMLDivElement>(null)
+  const [isAddHabitOpen, setIsAddHabitOpen] = useState(false)
 
   const selectedHabit = habits.find(h => h.id === selectedHabitId)
   const editingHabit = habits.find(h => h.id === editingHabitId)
 
-  const scrollToAddForm = () => {
-    addFormRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  // Calculate stats for achievement checking
   const getStats = () => {
     const totalHabits = habits.length
     const totalCompletions = habits.reduce((sum, h) => sum + h.completions.length, 0)
@@ -60,11 +51,9 @@ export function Dashboard() {
     const success = await toggleCompletion(habitId)
 
     if (success && !wasCompleted) {
-      // Award points for new completion
       const { total } = calculatePoints(habit.currentStreak + 1)
       await awardPoints(total)
 
-      // Check for new achievements
       const stats = getStats()
       stats.totalCompletions += 1
       stats.maxStreak = Math.max(stats.maxStreak, habit.currentStreak + 1)
@@ -76,7 +65,6 @@ export function Dashboard() {
     const result = await createHabit(input)
 
     if (result) {
-      // Check for first_habit and habits_10 achievements
       const stats = getStats()
       stats.totalHabits += 1
       await checkAndUnlockAchievements(stats)
@@ -87,26 +75,36 @@ export function Dashboard() {
 
   const handleTogglePastCompletion = async (date: string) => {
     if (!selectedHabit) return
+    await handleToggleDateCompletion(selectedHabit.id, date)
+  }
 
-    const isCompleted = selectedHabit.completions.some(c => c.completed_date === date)
+  const handleToggleDateCompletion = async (habitId: string, date: string) => {
+    const today = getLocalDateString()
+
+    if (date === today) {
+      await handleToggleCompletion(habitId)
+      return
+    }
+
+    const habit = habits.find(h => h.id === habitId)
+    if (!habit) return
+
+    const isCompleted = habit.completions.some(c => c.completed_date === date)
 
     try {
-      await togglePastCompletion(selectedHabit.id, date, isCompleted)
+      await togglePastCompletion(habitId, date, isCompleted)
 
-      // Award/remove points for past completion
       if (!isCompleted) {
-        await awardPoints(10) // Base points only for retroactive
+        await awardPoints(10)
       }
 
-      // Refetch to update streaks and completions
       await refetch()
       await refetchGamification()
 
-      // Check achievements with updated stats
       const stats = getStats()
       await checkAndUnlockAchievements(stats)
     } catch (err) {
-      console.error('Failed to toggle past completion:', err)
+      console.error('Failed to toggle date completion:', err)
     }
   }
 
@@ -122,8 +120,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Achievement Notification */}
+    <div className="min-h-screen habit-scene">
       {newAchievement && (
         <AchievementNotification
           icon={newAchievement.icon}
@@ -132,88 +129,82 @@ export function Dashboard() {
         />
       )}
 
-      <header className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Habit Tracker</h1>
-          <div className="flex items-center gap-3">
-            <PointsDisplay points={totalPoints} />
-            <Link
-              to="/settings"
-              className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
-              aria-label="Settings"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-lg mx-auto px-4 py-6 pb-24">
+      <main className="max-w-[430px] md:max-w-3xl mx-auto px-3 sm:px-4 py-3 md:py-8 pb-32">
         {error && (
-          <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 rounded-lg">
+          <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 rounded-xl border border-red-100">
             {error}
           </div>
         )}
 
-        {loading ? (
-          <div className="text-center py-12 text-gray-500">Loading habits...</div>
-        ) : (
-          <>
-            <HabitList
-              habits={habits}
-              categories={categories}
-              onToggle={handleToggleCompletion}
-              onHabitClick={handleHabitClick}
-              onAddClick={scrollToAddForm}
-            />
-
-            <div ref={addFormRef} className="mt-6">
-              <AddHabitForm
-                onSubmit={handleCreateHabit}
-                categories={categories}
-                onCreateCategory={handleCreateCategory}
-              />
-            </div>
-
-            {/* Achievements Section */}
-            <div className="mt-8">
-              <button
-                onClick={() => setShowAchievements(!showAchievements)}
-                className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🏆</span>
-                  <span className="font-medium text-gray-900">Achievements</span>
-                  <span className="text-sm text-gray-500">
-                    ({achievements.length}/{8} unlocked)
-                  </span>
-                </div>
-                <svg
-                  className={`w-5 h-5 text-gray-400 transition-transform ${
-                    showAchievements ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        <section>
+          <div className="sticky top-0 z-10 py-3 bg-[#f3f4f7]/95 backdrop-blur-sm border-b border-black/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#9da2ac]">today</p>
+                <h1 className="text-2xl sm:text-3xl font-semibold text-[#101114] tracking-tight">habits</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsAddHabitOpen(true)}
+                  className="w-11 h-11 rounded-full bg-white border border-black/10 text-[#111319] text-2xl leading-none hover:bg-[#111319] hover:text-white"
+                  aria-label="Add habit"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {showAchievements && (
-                <div className="mt-3">
-                  <AchievementsList achievements={achievements} />
-                </div>
-              )}
+                  +
+                </button>
+                <Link
+                  to="/settings"
+                  className="w-11 h-11 rounded-full bg-white border border-black/10 text-[#666a73] hover:text-[#111319] flex items-center justify-center"
+                  aria-label="Settings"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </Link>
+              </div>
             </div>
-          </>
-        )}
+          </div>
+
+          <div className="pt-4 space-y-5">
+            {loading ? (
+              <div className="text-center py-12 text-[#8f939c]">Loading habits...</div>
+            ) : (
+              <HabitList
+                habits={habits}
+                categories={categories}
+                onToggle={handleToggleCompletion}
+                onDateToggle={handleToggleDateCompletion}
+                onHabitClick={handleHabitClick}
+                onAddClick={() => setIsAddHabitOpen(true)}
+              />
+            )}
+          </div>
+        </section>
       </main>
 
-      {/* Habit Detail Modal */}
+      <AddHabitForm
+        isOpen={isAddHabitOpen}
+        onOpenChange={setIsAddHabitOpen}
+        onSubmit={handleCreateHabit}
+        categories={categories}
+        onCreateCategory={handleCreateCategory}
+      />
+
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-black/10 bg-white/95 backdrop-blur-sm px-8 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+        <div className="max-w-[430px] mx-auto flex items-center justify-around text-[#a2a6af]">
+          <button className="text-[#111319]" aria-label="Home">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-10.5z" />
+            </svg>
+          </button>
+          <Link to="/settings" className="hover:text-[#111319]" aria-label="Settings">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19a3 3 0 00-6 0m9 0a6 6 0 10-12 0m9-9a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </Link>
+        </div>
+      </nav>
+
       {selectedHabit && (
         <HabitDetailModal
           habit={selectedHabit}
@@ -223,7 +214,6 @@ export function Dashboard() {
         />
       )}
 
-      {/* Edit Habit Modal */}
       {editingHabit && (
         <EditHabitModal
           habit={editingHabit}

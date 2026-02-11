@@ -1,42 +1,51 @@
 @import "tailwindcss";
 
-/* Base mobile-first styles */
+:root {
+  --scene-bg: #f3f4f7;
+}
+
 html {
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  margin: 0;
+  font-family: "Avenir Next", "Sofia Pro", "Nunito Sans", "Helvetica Neue", sans-serif;
+  background: var(--scene-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Touch-friendly tap targets */
-button, a, input[type="checkbox"] {
+button,
+a,
+input[type="checkbox"] {
   min-height: 44px;
   min-width: 44px;
 }
 
-/* Form inputs mobile optimization */
-input, textarea, select {
-  font-size: 16px; /* Prevents iOS zoom on focus */
+input,
+textarea,
+select {
+  font-size: 16px;
 }
 
-/* Smooth transitions */
 * {
   transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
 
-/* Disable transitions for reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0ms !important;
   }
 }
 
-/* Habit completion animation */
+.habit-scene {
+  min-height: 100vh;
+  background: var(--scene-bg);
+}
+
 .habit-complete {
   animation: checkPop 0.3s ease-out;
 }
@@ -53,7 +62,6 @@ input, textarea, select {
   }
 }
 
-/* Achievement notification animation */
 .animate-slide-down {
   animation: slideDown 0.3s ease-out;
 }
@@ -69,7 +77,6 @@ input, textarea, select {
   }
 }
 
-/* Modal slide up animation */
 .animate-slide-up {
   animation: slideUp 0.3s ease-out;
 }

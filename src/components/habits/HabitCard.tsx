@@ -60,8 +60,8 @@ export function HabitCard({
       className="relative overflow-hidden p-4 sm:p-5 rounded-3xl border border-black/5 bg-white transition-all cursor-pointer hover:shadow-[0_10px_30px_rgba(17,17,17,0.08)]"
     >
       {currentStreak > 0 && (
-        <div className="pointer-events-none absolute right-[7%] h-[120%] flex items-center text-[#111319]/12">
-          <span className="text-[7.5rem] sm:text-[25rem] leading-none font-semibold tabular-nums">
+        <div className="pointer-events-none absolute right-[7%] top-[-5%] h-[120%] flex items-center text-[#111319]/12">
+          <span className="text-[20rem] sm:text-[25rem] leading-none font-semibold tabular-nums">
             {currentStreak}
           </span>
         </div>

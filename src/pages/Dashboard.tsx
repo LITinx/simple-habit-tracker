@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useHabits } from '../hooks/useHabits'
-import { useCompletions } from '../hooks/useCompletions'
 import { useGamification } from '../hooks/useGamification'
 import { useCategories } from '../hooks/useCategories'
 import { HabitList } from '../components/habits/HabitList'
@@ -14,14 +13,12 @@ import { getLocalDateString } from '../lib/utils'
 import type { CreateHabitInput } from '../lib/types'
 
 export function Dashboard() {
-  const { habits, loading, error, createHabit, updateHabit, toggleCompletion, deleteHabit, refetch } = useHabits()
-  const { togglePastCompletion } = useCompletions()
+  const { habits, loading, error, createHabit, updateHabit, toggleCompletion, toggleCompletionForDate, deleteHabit } = useHabits()
   const {
     newAchievement,
     awardPoints,
     checkAndUnlockAchievements,
     dismissAchievementNotification,
-    refetch: refetchGamification,
   } = useGamification()
   const { categories, createCategory } = useCategories()
 
@@ -92,16 +89,15 @@ export function Dashboard() {
     const isCompleted = habit.completions.some(c => c.completed_date === date)
 
     try {
-      await togglePastCompletion(habitId, date, isCompleted)
+      const success = await toggleCompletionForDate(habitId, date)
+      if (!success) return
 
       if (!isCompleted) {
         await awardPoints(10)
       }
 
-      await refetch()
-      await refetchGamification()
-
       const stats = getStats()
+      stats.totalCompletions += isCompleted ? -1 : 1
       await checkAndUnlockAchievements(stats)
     } catch (err) {
       console.error('Failed to toggle date completion:', err)

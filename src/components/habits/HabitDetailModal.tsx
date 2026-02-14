@@ -20,15 +20,15 @@ export function HabitDetailModal({ habit, onClose, onTogglePastCompletion, onEdi
       {/* Modal */}
       <div className="relative w-full max-w-lg bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 truncate pr-4">
+        <div className="sticky top-0 bg-white border-b border-black/10 px-4 py-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#101114] truncate pr-4">
             {habit.name}
           </h2>
           <div className="flex items-center gap-1">
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+                className="p-2 text-[#8f9298] hover:text-[#111319] rounded-full hover:bg-[#f1f2f5]"
                 aria-label="Edit habit"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,7 +38,7 @@ export function HabitDetailModal({ habit, onClose, onTogglePastCompletion, onEdi
             )}
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+              className="p-2 text-[#8f9298] hover:text-[#111319] rounded-full hover:bg-[#f1f2f5]"
               aria-label="Close"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,37 +52,37 @@ export function HabitDetailModal({ habit, onClose, onTogglePastCompletion, onEdi
         <div className="p-4 space-y-4">
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-orange-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-orange-600">
+            <div className="bg-[#f1f2f5] border border-black/5 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-[#111319]">
                 {habit.currentStreak}
               </div>
-              <div className="text-xs text-orange-600">Current Streak</div>
+              <div className="text-xs text-[#7c8087]">Current Streak</div>
             </div>
-            <div className="bg-blue-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-blue-600">
+            <div className="bg-[#f1f2f5] border border-black/5 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-[#111319]">
                 {habit.longestStreak}
               </div>
-              <div className="text-xs text-blue-600">Longest Streak</div>
+              <div className="text-xs text-[#7c8087]">Longest Streak</div>
             </div>
           </div>
 
           {habit.description && (
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-1">Description</h3>
-              <p className="text-gray-600 text-sm">{habit.description}</p>
+              <h3 className="text-sm font-medium text-[#1d1f24] mb-1">Description</h3>
+              <p className="text-[#7c8087] text-sm">{habit.description}</p>
             </div>
           )}
 
           {habit.motivation_note && (
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-1">Motivation</h3>
-              <p className="text-gray-600 text-sm italic">"{habit.motivation_note}"</p>
+              <h3 className="text-sm font-medium text-[#1d1f24] mb-1">Motivation</h3>
+              <p className="text-[#7c8087] text-sm italic">"{habit.motivation_note}"</p>
             </div>
           )}
 
           {/* Calendar */}
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">History (last 4 weeks)</h3>
+            <h3 className="text-sm font-medium text-[#1d1f24] mb-2">History (last 4 weeks)</h3>
             <CompletionCalendar
               completions={habit.completions}
               onToggle={onTogglePastCompletion}

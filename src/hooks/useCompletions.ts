@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { isWithinDays, getLocalDateString } from '../lib/utils'
+import { insertCompletion, deleteCompletion } from '../lib/completionsService'
 
 export function useCompletions() {
   const togglePastCompletion = async (
@@ -16,26 +17,9 @@ export function useCompletions() {
     if (!user) throw new Error('Not authenticated')
 
     if (currentlyCompleted) {
-      // Delete the completion
-      const { error } = await supabase
-        .from('completions')
-        .delete()
-        .eq('habit_id', habitId)
-        .eq('completed_date', date)
-
-      if (error) throw error
+      await deleteCompletion({ habitId, completedDate: date })
     } else {
-      // Create the completion
-      const { error } = await supabase
-        .from('completions')
-        .insert({
-          habit_id: habitId,
-          user_id: user.id,
-          completed_date: date,
-          completed_at: new Date().toISOString(),
-        })
-
-      if (error) throw error
+      await insertCompletion({ habitId, userId: user.id, completedDate: date })
     }
 
     return true

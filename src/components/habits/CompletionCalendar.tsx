@@ -62,8 +62,8 @@ export function CompletionCalendar({ completions, onToggle }: CompletionCalendar
                   : ''
                 }
                 ${isCompleted
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 text-gray-400'
+                  ? 'bg-[#111319] text-white'
+                  : 'bg-[#f1f2f5] text-[#8f9298]'
                 }
                 ${isEditable
                   ? 'hover:ring-2 hover:ring-blue-300 cursor-pointer'

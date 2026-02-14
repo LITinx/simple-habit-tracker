@@ -76,11 +76,11 @@ export function EditHabitModal({
       />
 
       <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-t-2xl sm:rounded-2xl animate-slide-up">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Edit Habit</h2>
+        <div className="sticky top-0 bg-white border-b border-black/10 px-4 py-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#101114]">Edit Habit</h2>
           <button
             onClick={onClose}
-            className="p-2 -mr-2 text-gray-500 hover:text-gray-700"
+            className="p-2 -mr-2 text-[#8f9298] hover:text-[#111319]"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -96,7 +96,7 @@ export function EditHabitModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[#1d1f24] mb-1">
               Habit name *
             </label>
             <input
@@ -104,12 +104,12 @@ export function EditHabitModal({
               value={name}
               onChange={e => setName(e.target.value)}
               maxLength={100}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+              className="w-full px-3 py-2 border border-black/10 bg-[#f1f2f5] text-[#101114] rounded-lg focus:ring-2 focus:ring-[#111319] focus:border-[#111319]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[#1d1f24] mb-1">
               Description
             </label>
             <input
@@ -118,7 +118,7 @@ export function EditHabitModal({
               onChange={e => setDescription(e.target.value)}
               placeholder="Optional details"
               maxLength={500}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+              className="w-full px-3 py-2 border border-black/10 bg-[#f1f2f5] text-[#101114] rounded-lg focus:ring-2 focus:ring-[#111319] focus:border-[#111319]"
             />
           </div>
 
@@ -137,7 +137,7 @@ export function EditHabitModal({
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[#1d1f24] mb-1">
               Motivation note
             </label>
             <textarea
@@ -146,7 +146,7 @@ export function EditHabitModal({
               placeholder="Why is this habit important to you?"
               maxLength={200}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none"
+              className="w-full px-3 py-2 border border-black/10 bg-[#f1f2f5] text-[#101114] rounded-lg focus:ring-2 focus:ring-[#111319] focus:border-[#111319] resize-none"
             />
           </div>
 
@@ -154,7 +154,7 @@ export function EditHabitModal({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full py-2.5 px-4 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              className="w-full py-2.5 px-4 bg-[#111319] text-white font-medium rounded-lg hover:bg-[#1d1f24] disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save changes'}
             </button>
@@ -181,7 +181,7 @@ export function EditHabitModal({
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 py-2 px-4 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-100"
+                    className="flex-1 py-2 px-4 text-[#7c8087] text-sm font-medium rounded-lg hover:bg-[#f1f2f5]"
                   >
                     Cancel
                   </button>

@@ -84,6 +84,7 @@ CREATE INDEX idx_habits_user ON habits(user_id);
 CREATE INDEX idx_habits_user_active ON habits(user_id) WHERE is_active = TRUE;
 CREATE INDEX idx_completions_habit ON completions(habit_id);
 CREATE INDEX idx_completions_user_date ON completions(user_id, completed_date);
+CREATE INDEX idx_completions_user_habit_date ON completions(user_id, habit_id, completed_date);
 CREATE INDEX idx_achievements_user ON achievements(user_id);
 CREATE INDEX idx_categories_user ON categories(user_id);
 

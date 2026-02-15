@@ -8,6 +8,7 @@
 // ============================================
 
 export type FrequencyType = 'daily' | 'weekly';
+export type WeeklyStreakMode = 'days' | 'weeks';
 
 export type AchievementType =
   | 'first_habit'
@@ -42,6 +43,7 @@ export interface Habit {
   description: string | null;
   frequency_type: FrequencyType;
   frequency_value: number;
+  weekly_streak_mode: WeeklyStreakMode;
   category_id: string | null;
   motivation_note: string | null;
   is_active: boolean;
@@ -74,6 +76,7 @@ export interface CreateHabitInput {
   description?: string;
   frequency_type?: FrequencyType;
   frequency_value?: number;
+  weekly_streak_mode?: WeeklyStreakMode;
   category_id?: string;
   motivation_note?: string;
 }
@@ -83,6 +86,7 @@ export interface UpdateHabitInput {
   description?: string | null;
   frequency_type?: FrequencyType;
   frequency_value?: number;
+  weekly_streak_mode?: WeeklyStreakMode;
   category_id?: string | null;
   motivation_note?: string | null;
   is_active?: boolean;

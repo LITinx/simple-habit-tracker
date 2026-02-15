@@ -10,7 +10,7 @@ import { EditHabitModal } from '../components/habits/EditHabitModal'
 import { AchievementNotification } from '../components/gamification/AchievementNotification'
 import { calculatePoints } from '../lib/achievements'
 import { getLocalDateString } from '../lib/utils'
-import type { CreateHabitInput } from '../lib/types'
+import type { CreateHabitInput, WeeklyStreakMode } from '../lib/types'
 
 export function Dashboard() {
   const { habits, loading, error, createHabit, updateHabit, toggleCompletion, toggleCompletionForDate, deleteHabit } = useHabits()
@@ -108,6 +108,10 @@ export function Dashboard() {
     setSelectedHabitId(habitId)
   }
 
+  const handleWeeklyStreakModeChange = async (habitId: string, mode: WeeklyStreakMode) => {
+    await updateHabit(habitId, { weekly_streak_mode: mode })
+  }
+
   const handleEditClick = () => {
     if (selectedHabitId) {
       setEditingHabitId(selectedHabitId)
@@ -169,6 +173,7 @@ export function Dashboard() {
                 habits={habits}
                 categories={categories}
                 onToggle={handleToggleCompletion}
+                onWeeklyStreakModeChange={handleWeeklyStreakModeChange}
                 onDateToggle={handleToggleDateCompletion}
                 onHabitClick={handleHabitClick}
                 onAddClick={() => setIsAddHabitOpen(true)}

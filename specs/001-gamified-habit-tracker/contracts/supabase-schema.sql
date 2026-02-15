@@ -49,6 +49,7 @@ CREATE TABLE habits (
   description TEXT CHECK (char_length(description) <= 500),
   frequency_type frequency_type NOT NULL DEFAULT 'daily',
   frequency_value INTEGER NOT NULL DEFAULT 1 CHECK (frequency_value BETWEEN 1 AND 7),
+  weekly_streak_mode TEXT NOT NULL DEFAULT 'days' CHECK (weekly_streak_mode IN ('days', 'weeks')),
   category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
   motivation_note TEXT CHECK (char_length(motivation_note) <= 200),
   is_active BOOLEAN NOT NULL DEFAULT TRUE,

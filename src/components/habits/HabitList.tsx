@@ -3,12 +3,13 @@ import { HabitCard } from './HabitCard'
 import { EmptyState } from './EmptyState'
 import { getWeekCompletions } from '../../lib/utils'
 import type { HabitWithStats } from '../../hooks/useHabits'
-import type { Category } from '../../lib/types'
+import type { Category, WeeklyStreakMode } from '../../lib/types'
 
 interface HabitListProps {
   habits: HabitWithStats[]
   categories: Category[]
   onToggle: (habitId: string) => void
+  onWeeklyStreakModeChange: (habitId: string, mode: WeeklyStreakMode) => void
   onDateToggle?: (habitId: string, date: string) => void
   onHabitClick?: (habitId: string) => void
   onAddClick: () => void
@@ -18,6 +19,7 @@ export function HabitList({
   habits,
   categories,
   onToggle,
+  onWeeklyStreakModeChange,
   onDateToggle,
   onHabitClick,
   onAddClick,
@@ -90,9 +92,11 @@ export function HabitList({
             categoryName={habit.category_id ? categoryMap.get(habit.category_id) : null}
             frequencyType={habit.frequency_type}
             frequencyValue={habit.frequency_value}
+            weeklyStreakMode={habit.weekly_streak_mode}
             weeklyCompletions={getWeekCompletions(habit.completions)}
             completionDates={habit.completions.map(c => c.completed_date)}
             onToggle={() => onToggle(habit.id)}
+            onWeeklyStreakModeChange={(mode) => onWeeklyStreakModeChange(habit.id, mode)}
             onDateToggle={onDateToggle ? (date) => onDateToggle(habit.id, date) : undefined}
             onClick={onHabitClick ? () => onHabitClick(habit.id) : undefined}
           />

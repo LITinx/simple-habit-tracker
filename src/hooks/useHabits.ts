@@ -4,6 +4,8 @@ import {
   getLocalDateString,
   calculateStreak,
   calculateLongestStreak,
+  calculateWeeklyStreak,
+  calculateLongestWeeklyStreak,
   calculateWeeklyStreakCompletions,
   calculateLongestWeeklyStreakCompletions,
   isWithinDays,
@@ -30,15 +32,20 @@ export function useHabits() {
     const completionDates = completions.map(c => c.completed_date)
     const isWeekly = habit.frequency_type === 'weekly'
     const targetPerWeek = isWeekly ? habit.frequency_value : 1
+    const weeklyMode = habit.weekly_streak_mode || 'days'
 
     return {
       ...habit,
       completedToday: completionDates.includes(today),
       currentStreak: isWeekly
-        ? calculateWeeklyStreakCompletions(completionDates, targetPerWeek)
+        ? (weeklyMode === 'weeks'
+          ? calculateWeeklyStreak(completionDates, targetPerWeek)
+          : calculateWeeklyStreakCompletions(completionDates, targetPerWeek))
         : calculateStreak(completionDates),
       longestStreak: isWeekly
-        ? calculateLongestWeeklyStreakCompletions(completionDates, targetPerWeek)
+        ? (weeklyMode === 'weeks'
+          ? calculateLongestWeeklyStreak(completionDates, targetPerWeek)
+          : calculateLongestWeeklyStreakCompletions(completionDates, targetPerWeek))
         : calculateLongestStreak(completionDates),
       completions,
     }
@@ -114,6 +121,7 @@ export function useHabits() {
           description: input.description?.trim() || null,
           frequency_type: input.frequency_type || 'daily',
           frequency_value: input.frequency_value || 1,
+          weekly_streak_mode: input.weekly_streak_mode || 'days',
           category_id: input.category_id || null,
           motivation_note: input.motivation_note?.trim() || null,
         })
@@ -188,11 +196,12 @@ export function useHabits() {
         .update({
           ...(input.name !== undefined && { name: input.name.trim() }),
           ...(input.description !== undefined && { description: input.description?.trim() || null }),
-          ...(input.frequency_type !== undefined && { frequency_type: input.frequency_type }),
-          ...(input.frequency_value !== undefined && { frequency_value: input.frequency_value }),
-          ...(input.category_id !== undefined && { category_id: input.category_id }),
-          ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
-          ...(input.is_active !== undefined && { is_active: input.is_active }),
+            ...(input.frequency_type !== undefined && { frequency_type: input.frequency_type }),
+            ...(input.frequency_value !== undefined && { frequency_value: input.frequency_value }),
+            ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
+            ...(input.category_id !== undefined && { category_id: input.category_id }),
+            ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
+            ...(input.is_active !== undefined && { is_active: input.is_active }),
           updated_at: new Date().toISOString(),
         })
         .eq('id', habitId)
@@ -209,6 +218,7 @@ export function useHabits() {
             ...(input.description !== undefined && { description: input.description?.trim() || null }),
             ...(input.frequency_type !== undefined && { frequency_type: input.frequency_type }),
             ...(input.frequency_value !== undefined && { frequency_value: input.frequency_value }),
+            ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
             ...(input.category_id !== undefined && { category_id: input.category_id }),
             ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
           }

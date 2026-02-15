@@ -1,5 +1,6 @@
 import { Flame } from "lucide-react";
 import { getPastDays, getLocalDateString } from "../../lib/utils";
+import type { WeeklyStreakMode } from "../../lib/types";
 
 interface HabitCardProps {
   id: string;
@@ -11,9 +12,11 @@ interface HabitCardProps {
   categoryName?: string | null;
   frequencyType?: "daily" | "weekly";
   frequencyValue?: number;
+  weeklyStreakMode?: WeeklyStreakMode;
   weeklyCompletions?: number;
   completionDates?: string[];
   onToggle: () => void;
+  onWeeklyStreakModeChange?: (mode: WeeklyStreakMode) => void;
   onDateToggle?: (date: string) => void;
   onClick?: () => void;
 }
@@ -27,9 +30,11 @@ export function HabitCard({
   categoryName,
   frequencyType = "daily",
   frequencyValue = 1,
+  weeklyStreakMode = "days",
   weeklyCompletions = 0,
   completionDates = [],
   onToggle,
+  onWeeklyStreakModeChange,
   onDateToggle,
   onClick,
 }: HabitCardProps) {
@@ -52,6 +57,14 @@ export function HabitCard({
   const handleDateToggle = (e: React.MouseEvent, date: string) => {
     e.stopPropagation();
     onDateToggle?.(date);
+  };
+
+  const handleWeeklyModeChange = (
+    e: React.MouseEvent,
+    mode: WeeklyStreakMode
+  ) => {
+    e.stopPropagation();
+    onWeeklyStreakModeChange?.(mode);
   };
 
   return (
@@ -174,7 +187,42 @@ export function HabitCard({
           )}
         </div>
 
-        {currentStreak > 0 && (
+        {isWeekly && (
+          <div className="flex-shrink-0 inline-flex items-center gap-2">
+            <div className="inline-flex rounded-full bg-[#f1f2f5] p-0.5">
+              <button
+                type="button"
+                onClick={(e) => handleWeeklyModeChange(e, "days")}
+                className={`px-2 py-1 text-[10px] tracking-[0.06em] uppercase rounded-full ${
+                  weeklyStreakMode === "days"
+                    ? "bg-[#111319] text-white"
+                    : "text-[#6f737d]"
+                }`}
+              >
+                days
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleWeeklyModeChange(e, "weeks")}
+                className={`px-2 py-1 text-[10px] tracking-[0.06em] uppercase rounded-full ${
+                  weeklyStreakMode === "weeks"
+                    ? "bg-[#111319] text-white"
+                    : "text-[#6f737d]"
+                }`}
+              >
+                weeks
+              </button>
+            </div>
+
+            {currentStreak > 0 && (
+              <div className="inline-flex items-center text-[#111319]">
+                <Flame className="w-8 h-8" strokeWidth={2.2} aria-hidden="true" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isWeekly && currentStreak > 0 && (
           <div className="flex-shrink-0 inline-flex items-center gap-2 text-[#111319]">
             <Flame className="w-8 h-8" strokeWidth={2.2} aria-hidden="true" />
           </div>

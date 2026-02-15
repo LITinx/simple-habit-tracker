@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { getLocalDateString, calculateStreak, calculateLongestStreak, isWithinDays } from '../lib/utils'
+import {
+  getLocalDateString,
+  calculateStreak,
+  calculateLongestStreak,
+  calculateWeeklyStreakCompletions,
+  calculateLongestWeeklyStreakCompletions,
+  isWithinDays,
+} from '../lib/utils'
 import { buildOptimisticCompletion, insertCompletion, deleteCompletion } from '../lib/completionsService'
 import type { Habit, CreateHabitInput, UpdateHabitInput, Completion } from '../lib/types'
 
@@ -21,11 +28,18 @@ export function useHabits() {
 
   const withComputedStats = useCallback((habit: HabitWithStats, completions: Completion[]): HabitWithStats => {
     const completionDates = completions.map(c => c.completed_date)
+    const isWeekly = habit.frequency_type === 'weekly'
+    const targetPerWeek = isWeekly ? habit.frequency_value : 1
+
     return {
       ...habit,
       completedToday: completionDates.includes(today),
-      currentStreak: calculateStreak(completionDates),
-      longestStreak: calculateLongestStreak(completionDates),
+      currentStreak: isWeekly
+        ? calculateWeeklyStreakCompletions(completionDates, targetPerWeek)
+        : calculateStreak(completionDates),
+      longestStreak: isWeekly
+        ? calculateLongestWeeklyStreakCompletions(completionDates, targetPerWeek)
+        : calculateLongestStreak(completionDates),
       completions,
     }
   }, [today])
@@ -71,15 +85,7 @@ export function useHabits() {
 
       const habitsWithStats: HabitWithStats[] = (habitsData || []).map(habit => {
         const habitCompletions = completionsByHabit.get(habit.id) || []
-        const completionDates = habitCompletions.map(c => c.completed_date)
-
-        return {
-          ...habit,
-          completedToday: completionDates.includes(today),
-          currentStreak: calculateStreak(completionDates),
-          longestStreak: calculateLongestStreak(completionDates),
-          completions: habitCompletions,
-        }
+        return withComputedStats({ ...habit, completedToday: false, currentStreak: 0, longestStreak: 0, completions: [] }, habitCompletions)
       })
 
       setHabits(habitsWithStats)
@@ -88,7 +94,7 @@ export function useHabits() {
     } finally {
       setLoading(false)
     }
-  }, [today])
+  }, [withComputedStats])
 
   useEffect(() => {
     fetchHabits()
@@ -197,7 +203,7 @@ export function useHabits() {
       setHabits(prev =>
         prev.map(h => {
           if (h.id !== habitId) return h
-          return {
+          const updatedHabit: HabitWithStats = {
             ...h,
             ...(input.name !== undefined && { name: input.name.trim() }),
             ...(input.description !== undefined && { description: input.description?.trim() || null }),
@@ -206,6 +212,8 @@ export function useHabits() {
             ...(input.category_id !== undefined && { category_id: input.category_id }),
             ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
           }
+
+          return withComputedStats(updatedHabit, h.completions)
         })
       )
 

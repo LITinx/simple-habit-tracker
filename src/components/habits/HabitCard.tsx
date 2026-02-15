@@ -59,12 +59,11 @@ export function HabitCard({
     onDateToggle?.(date);
   };
 
-  const handleWeeklyModeChange = (
-    e: React.MouseEvent,
-    mode: WeeklyStreakMode
-  ) => {
+  const handleWeeklyModeToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onWeeklyStreakModeChange?.(mode);
+    const nextMode: WeeklyStreakMode =
+      weeklyStreakMode === "days" ? "weeks" : "days";
+    onWeeklyStreakModeChange?.(nextMode);
   };
 
   return (
@@ -189,34 +188,50 @@ export function HabitCard({
 
         {isWeekly && (
           <div className="flex-shrink-0 inline-flex items-center gap-2">
-            <div className="inline-flex rounded-full bg-[#f1f2f5] p-0.5">
-              <button
-                type="button"
-                onClick={(e) => handleWeeklyModeChange(e, "days")}
-                className={`px-2 py-1 text-[10px] tracking-[0.06em] uppercase rounded-full ${
-                  weeklyStreakMode === "days"
-                    ? "bg-[#111319] text-white"
-                    : "text-[#6f737d]"
-                }`}
-              >
-                days
-              </button>
-              <button
-                type="button"
-                onClick={(e) => handleWeeklyModeChange(e, "weeks")}
-                className={`px-2 py-1 text-[10px] tracking-[0.06em] uppercase rounded-full ${
-                  weeklyStreakMode === "weeks"
-                    ? "bg-[#111319] text-white"
-                    : "text-[#6f737d]"
-                }`}
-              >
-                weeks
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleWeeklyModeToggle}
+              aria-label={`Toggle weekly streak mode (currently ${weeklyStreakMode})`}
+              className="relative inline-flex items-center w-[96px] h-[40px] rounded-full bg-[#f1f2f5] transition-colors active:scale-[0.98]"
+            >
+              <span
+                className="absolute left-[1px] top-[1px] h-[44px] w-[47px] rounded-full bg-[#111319] shadow-sm transition-transform duration-200 ease-out"
+                style={{
+                  transform:
+                    weeklyStreakMode === "weeks"
+                      ? "translateX(47px)"
+                      : "translateX(0px)",
+                }}
+              />
+              <span className="pointer-events-none relative z-10 flex w-full items-center text-[10px] tracking-[0.06em] uppercase font-medium">
+                <span
+                  className={`w-1/2 text-center transition-colors duration-200 ${
+                    weeklyStreakMode === "days"
+                      ? "text-white"
+                      : "text-[#6f737d]"
+                  }`}
+                >
+                  days
+                </span>
+                <span
+                  className={`w-1/2 text-center transition-colors duration-200 ${
+                    weeklyStreakMode === "weeks"
+                      ? "text-white"
+                      : "text-[#6f737d]"
+                  }`}
+                >
+                  weeks
+                </span>
+              </span>
+            </button>
 
             {currentStreak > 0 && (
               <div className="inline-flex items-center text-[#111319]">
-                <Flame className="w-8 h-8" strokeWidth={2.2} aria-hidden="true" />
+                <Flame
+                  className="w-8 h-8"
+                  strokeWidth={2.2}
+                  aria-hidden="true"
+                />
               </div>
             )}
           </div>

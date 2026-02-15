@@ -71,11 +71,11 @@ export function EditHabitModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/50 animate-modal-backdrop"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-t-2xl sm:rounded-2xl animate-slide-up">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-t-2xl sm:rounded-2xl animate-modal-panel">
         <div className="sticky top-0 bg-white border-b border-black/10 px-4 py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[#101114]">Edit Habit</h2>
           <button

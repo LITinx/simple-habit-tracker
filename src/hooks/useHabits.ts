@@ -64,27 +64,36 @@ export function useHabits() {
   const fetchHabits = useCallback(async () => {
     try {
       setError(null)
+      const userId = await getCurrentUserId()
 
       // Fetch active habits
       const { data: habitsData, error: habitsError } = await supabase
         .from('habits')
         .select('*')
+        .eq('user_id', userId)
         .eq('is_active', true)
         .order('created_at', { ascending: true })
 
       if (habitsError) throw habitsError
 
-      // Fetch all completions for streak calculation
-      const { data: completionsData, error: completionsError } = await supabase
-        .from('completions')
-        .select('*')
-        .order('completed_date', { ascending: false })
+      const habitIds = (habitsData || []).map(habit => habit.id)
+      let completionsData: Completion[] = []
 
-      if (completionsError) throw completionsError
+      if (habitIds.length > 0) {
+        // Fetch completions only for visible habits
+        const { data, error: completionsError } = await supabase
+          .from('completions')
+          .select('*')
+          .in('habit_id', habitIds)
+          .order('completed_date', { ascending: false })
+
+        if (completionsError) throw completionsError
+        completionsData = data || []
+      }
 
       // Group completions by habit_id
       const completionsByHabit = new Map<string, Completion[]>()
-      for (const completion of completionsData || []) {
+      for (const completion of completionsData) {
         const existing = completionsByHabit.get(completion.habit_id) || []
         existing.push(completion)
         completionsByHabit.set(completion.habit_id, existing)
@@ -101,7 +110,7 @@ export function useHabits() {
     } finally {
       setLoading(false)
     }
-  }, [withComputedStats])
+  }, [getCurrentUserId, withComputedStats])
 
   useEffect(() => {
     fetchHabits()
@@ -188,47 +197,47 @@ export function useHabits() {
     toggleCompletionAtDate(habitId, date)
 
   const updateHabit = async (habitId: string, input: UpdateHabitInput): Promise<boolean> => {
+    const previousHabit = habits.find(h => h.id === habitId)
+    if (!previousHabit) return false
+
+    const optimisticHabit: HabitWithStats = {
+      ...previousHabit,
+      ...(input.name !== undefined && { name: input.name.trim() }),
+      ...(input.description !== undefined && { description: input.description?.trim() || null }),
+      ...(input.frequency_type !== undefined && { frequency_type: input.frequency_type }),
+      ...(input.frequency_value !== undefined && { frequency_value: input.frequency_value }),
+      ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
+      ...(input.category_id !== undefined && { category_id: input.category_id }),
+      ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
+      ...(input.is_active !== undefined && { is_active: input.is_active }),
+    }
+
     try {
       setError(null)
+      setHabits(prev =>
+        prev.map(h => (h.id === habitId ? withComputedStats(optimisticHabit, optimisticHabit.completions) : h))
+      )
 
       const { error } = await supabase
         .from('habits')
         .update({
           ...(input.name !== undefined && { name: input.name.trim() }),
           ...(input.description !== undefined && { description: input.description?.trim() || null }),
-            ...(input.frequency_type !== undefined && { frequency_type: input.frequency_type }),
-            ...(input.frequency_value !== undefined && { frequency_value: input.frequency_value }),
-            ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
-            ...(input.category_id !== undefined && { category_id: input.category_id }),
-            ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
-            ...(input.is_active !== undefined && { is_active: input.is_active }),
+          ...(input.frequency_type !== undefined && { frequency_type: input.frequency_type }),
+          ...(input.frequency_value !== undefined && { frequency_value: input.frequency_value }),
+          ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
+          ...(input.category_id !== undefined && { category_id: input.category_id }),
+          ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
+          ...(input.is_active !== undefined && { is_active: input.is_active }),
           updated_at: new Date().toISOString(),
         })
         .eq('id', habitId)
 
       if (error) throw error
 
-      // Update local state
-      setHabits(prev =>
-        prev.map(h => {
-          if (h.id !== habitId) return h
-          const updatedHabit: HabitWithStats = {
-            ...h,
-            ...(input.name !== undefined && { name: input.name.trim() }),
-            ...(input.description !== undefined && { description: input.description?.trim() || null }),
-            ...(input.frequency_type !== undefined && { frequency_type: input.frequency_type }),
-            ...(input.frequency_value !== undefined && { frequency_value: input.frequency_value }),
-            ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
-            ...(input.category_id !== undefined && { category_id: input.category_id }),
-            ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
-          }
-
-          return withComputedStats(updatedHabit, h.completions)
-        })
-      )
-
       return true
     } catch (err) {
+      setHabits(prev => prev.map(h => (h.id === habitId ? previousHabit : h)))
       setError(err instanceof Error ? err.message : 'Failed to update habit')
       return false
     }

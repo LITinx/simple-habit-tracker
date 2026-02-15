@@ -13,12 +13,16 @@ export function HabitDetailModal({ habit, onClose, onTogglePastCompletion, onEdi
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/50 animate-modal-backdrop"
+        style={{ animation: 'modalBackdropIn 220ms ease-out' }}
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-auto">
+      <div
+        className="relative w-full max-w-lg bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-auto animate-modal-panel"
+        style={{ animation: 'modalPanelIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-black/10 px-4 py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[#101114] truncate pr-4">

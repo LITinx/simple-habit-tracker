@@ -79,14 +79,14 @@ export function AddHabitForm({
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-black/40 animate-modal-backdrop"
         onClick={closeModal}
         aria-label="Close add habit dialog"
       />
 
       <form
         onSubmit={handleSubmit}
-        className="relative z-10 w-full sm:max-w-xl max-h-[88vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-5 bg-white border border-black/5 rounded-t-3xl sm:rounded-3xl space-y-4 shadow-[0_30px_90px_rgba(9,11,16,0.35)]"
+        className="relative z-10 w-full sm:max-w-xl max-h-[88vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:pb-5 bg-white border border-black/5 rounded-t-3xl sm:rounded-3xl space-y-4 shadow-[0_30px_90px_rgba(9,11,16,0.35)] animate-modal-panel"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[#111319]">Add new habit</h2>

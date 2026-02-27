@@ -19,6 +19,7 @@ interface HabitCardProps {
   onWeeklyStreakModeChange?: (mode: WeeklyStreakMode) => void;
   onDateToggle?: (date: string) => void;
   onClick?: () => void;
+  onOpenTimeline?: () => void;
 }
 
 export function HabitCard({
@@ -37,6 +38,7 @@ export function HabitCard({
   onWeeklyStreakModeChange,
   onDateToggle,
   onClick,
+  onOpenTimeline,
 }: HabitCardProps) {
   const today = getLocalDateString();
   const displayDays = getPastDays(7).reverse();
@@ -64,6 +66,11 @@ export function HabitCard({
     const nextMode: WeeklyStreakMode =
       weeklyStreakMode === "days" ? "weeks" : "days";
     onWeeklyStreakModeChange?.(nextMode);
+  };
+
+  const handleOpenTimeline = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenTimeline?.();
   };
 
   return (
@@ -99,37 +106,47 @@ export function HabitCard({
           </div>
         </div>
 
-        <button
-          onClick={handleToggle}
-          className={`
-            flex-shrink-0 w-9 h-9 rounded-full border flex items-center justify-center
-            transition-all
-            ${
-              completedToday
-                ? "bg-[#111319] border-[#111319] text-white habit-complete"
-                : "border-[#c9ccd3] text-[#8f9298] hover:border-[#111319]"
+        <div className="flex-shrink-0 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleOpenTimeline}
+            className="h-9 px-3 rounded-full border border-[#c9ccd3] text-[11px] tracking-[0.08em] uppercase text-[#666a73] hover:border-[#111319] hover:text-[#111319]"
+            aria-label="Open progress timeline"
+          >
+            Timeline
+          </button>
+          <button
+            onClick={handleToggle}
+            className={`
+              flex-shrink-0 w-9 h-9 rounded-full border flex items-center justify-center
+              transition-all
+              ${
+                completedToday
+                  ? "bg-[#111319] border-[#111319] text-white habit-complete"
+                  : "border-[#c9ccd3] text-[#8f9298] hover:border-[#111319]"
+              }
+            `}
+            aria-label={
+              completedToday ? "Mark as incomplete" : "Mark as complete"
             }
-          `}
-          aria-label={
-            completedToday ? "Mark as incomplete" : "Mark as complete"
-          }
-        >
-          {completedToday && (
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={3}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-        </button>
+          >
+            {completedToday && (
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       <p className="mt-5 text-[12px] lowercase tracking-[0.08em] text-[#a2a5ac]">

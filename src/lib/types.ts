@@ -46,7 +46,19 @@ export interface Habit {
   weekly_streak_mode: WeeklyStreakMode;
   category_id: string | null;
   motivation_note: string | null;
+  progress_question: string | null;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HabitTimelineEntry {
+  id: string;
+  habit_id: string;
+  user_id: string;
+  entry_date: string; // YYYY-MM-DD format
+  rating: number; // 1-5
+  note: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -79,6 +91,7 @@ export interface CreateHabitInput {
   weekly_streak_mode?: WeeklyStreakMode;
   category_id?: string;
   motivation_note?: string;
+  progress_question?: string;
 }
 
 export interface UpdateHabitInput {
@@ -89,7 +102,19 @@ export interface UpdateHabitInput {
   weekly_streak_mode?: WeeklyStreakMode;
   category_id?: string | null;
   motivation_note?: string | null;
+  progress_question?: string | null;
   is_active?: boolean;
+}
+
+export interface CreateHabitTimelineEntryInput {
+  habit_id: string;
+  entry_date: string; // YYYY-MM-DD format
+  rating: number; // 1-5
+  note?: string;
+}
+
+export interface UpdateHabitProgressQuestionInput {
+  progress_question: string;
 }
 
 export interface CreateCategoryInput {
@@ -204,7 +229,11 @@ export const LIMITS = {
   HABIT_NAME_MAX: 100,
   HABIT_DESCRIPTION_MAX: 500,
   MOTIVATION_NOTE_MAX: 200,
+  PROGRESS_QUESTION_MAX: 200,
+  TIMELINE_NOTE_MAX: 500,
   CATEGORY_NAME_MAX: 50,
   RETROACTIVE_DAYS: 7,
   WEEKLY_FREQUENCY_MAX: 7,
 } as const;
+
+export const DEFAULT_PROGRESS_QUESTION = 'How did this habit go today?';

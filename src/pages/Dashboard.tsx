@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useHabits } from '../hooks/useHabits'
 import { useGamification } from '../hooks/useGamification'
 import { useCategories } from '../hooks/useCategories'
@@ -13,6 +13,7 @@ import { getLocalDateString } from '../lib/utils'
 import type { CreateHabitInput, WeeklyStreakMode } from '../lib/types'
 
 export function Dashboard() {
+  const navigate = useNavigate()
   const { habits, loading, error, createHabit, updateHabit, toggleCompletion, toggleCompletionForDate, deleteHabit } = useHabits()
   const {
     newAchievement,
@@ -112,6 +113,10 @@ export function Dashboard() {
     await updateHabit(habitId, { weekly_streak_mode: mode })
   }
 
+  const handleOpenTimeline = (habitId: string) => {
+    navigate(`/habits/${habitId}/timeline`)
+  }
+
   const handleEditClick = () => {
     if (selectedHabitId) {
       setEditingHabitId(selectedHabitId)
@@ -176,6 +181,7 @@ export function Dashboard() {
                 onWeeklyStreakModeChange={handleWeeklyStreakModeChange}
                 onDateToggle={handleToggleDateCompletion}
                 onHabitClick={handleHabitClick}
+                onOpenTimeline={handleOpenTimeline}
                 onAddClick={() => setIsAddHabitOpen(true)}
               />
             )}

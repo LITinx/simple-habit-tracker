@@ -3,6 +3,7 @@ import { Login } from './pages/Login'
 import { Signup } from './pages/Signup'
 import { Dashboard } from './pages/Dashboard'
 import { Settings } from './pages/Settings'
+import { HabitTimeline } from './pages/HabitTimeline'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { OfflineIndicator } from './components/ui/OfflineIndicator'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -28,6 +29,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/habits/:habitId/timeline"
+            element={
+              <ProtectedRoute>
+                <HabitTimeline />
               </ProtectedRoute>
             }
           />

@@ -12,6 +12,7 @@ interface HabitListProps {
   onWeeklyStreakModeChange: (habitId: string, mode: WeeklyStreakMode) => void
   onDateToggle?: (habitId: string, date: string) => void
   onHabitClick?: (habitId: string) => void
+  onOpenTimeline?: (habitId: string) => void
   onAddClick: () => void
 }
 
@@ -22,6 +23,7 @@ export function HabitList({
   onWeeklyStreakModeChange,
   onDateToggle,
   onHabitClick,
+  onOpenTimeline,
   onAddClick,
 }: HabitListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -99,6 +101,7 @@ export function HabitList({
             onWeeklyStreakModeChange={(mode) => onWeeklyStreakModeChange(habit.id, mode)}
             onDateToggle={onDateToggle ? (date) => onDateToggle(habit.id, date) : undefined}
             onClick={onHabitClick ? () => onHabitClick(habit.id) : undefined}
+            onOpenTimeline={onOpenTimeline ? () => onOpenTimeline(habit.id) : undefined}
           />
         ))}
       </div>

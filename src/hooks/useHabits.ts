@@ -11,6 +11,7 @@ import {
   isWithinDays,
 } from '../lib/utils'
 import { buildOptimisticCompletion, insertCompletion, deleteCompletion } from '../lib/completionsService'
+import { DEFAULT_PROGRESS_QUESTION } from '../lib/types'
 import type { Habit, CreateHabitInput, UpdateHabitInput, Completion } from '../lib/types'
 
 export interface HabitWithStats extends Habit {
@@ -133,6 +134,7 @@ export function useHabits() {
           weekly_streak_mode: input.weekly_streak_mode || 'days',
           category_id: input.category_id || null,
           motivation_note: input.motivation_note?.trim() || null,
+          progress_question: input.progress_question?.trim() || DEFAULT_PROGRESS_QUESTION,
         })
         .select()
         .single()
@@ -209,6 +211,7 @@ export function useHabits() {
       ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
       ...(input.category_id !== undefined && { category_id: input.category_id }),
       ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
+      ...(input.progress_question !== undefined && { progress_question: input.progress_question?.trim() || null }),
       ...(input.is_active !== undefined && { is_active: input.is_active }),
     }
 
@@ -228,6 +231,7 @@ export function useHabits() {
           ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
           ...(input.category_id !== undefined && { category_id: input.category_id }),
           ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
+          ...(input.progress_question !== undefined && { progress_question: input.progress_question?.trim() || null }),
           ...(input.is_active !== undefined && { is_active: input.is_active }),
           updated_at: new Date().toISOString(),
         })

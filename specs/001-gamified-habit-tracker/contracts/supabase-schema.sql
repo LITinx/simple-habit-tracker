@@ -52,6 +52,7 @@ CREATE TABLE habits (
   weekly_streak_mode TEXT NOT NULL DEFAULT 'days' CHECK (weekly_streak_mode IN ('days', 'weeks')),
   category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
   motivation_note TEXT CHECK (char_length(motivation_note) <= 200),
+  progress_question TEXT DEFAULT 'How did this habit go today?' CHECK (char_length(progress_question) <= 200),
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -66,6 +67,19 @@ CREATE TABLE completions (
   completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(habit_id, completed_date)
+);
+
+-- Habit progress timeline entries
+CREATE TABLE habit_timeline_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  habit_id UUID NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  entry_date DATE NOT NULL,
+  rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  note TEXT CHECK (char_length(note) <= 500),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(habit_id, entry_date)
 );
 
 -- Unlocked achievements
@@ -87,6 +101,8 @@ CREATE INDEX idx_habits_user_active_created_at ON habits(user_id, created_at) WH
 CREATE INDEX idx_completions_habit ON completions(habit_id);
 CREATE INDEX idx_completions_user_date ON completions(user_id, completed_date);
 CREATE INDEX idx_completions_user_habit_date ON completions(user_id, habit_id, completed_date);
+CREATE INDEX idx_habit_timeline_entries_habit_date ON habit_timeline_entries(habit_id, entry_date DESC);
+CREATE INDEX idx_habit_timeline_entries_user_created ON habit_timeline_entries(user_id, created_at DESC);
 CREATE INDEX idx_achievements_user ON achievements(user_id);
 CREATE INDEX idx_categories_user ON categories(user_id);
 
@@ -98,6 +114,7 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE completions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE habit_timeline_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users can only access their own profile
@@ -156,6 +173,23 @@ CREATE POLICY "Users can delete own completions"
   ON completions FOR DELETE
   USING (auth.uid() = user_id);
 
+-- Habit timeline entries: users can only access their own entries
+CREATE POLICY "Users can view own timeline entries"
+  ON habit_timeline_entries FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own timeline entries"
+  ON habit_timeline_entries FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own timeline entries"
+  ON habit_timeline_entries FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own timeline entries"
+  ON habit_timeline_entries FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- Achievements: users can only view their own achievements
 CREATE POLICY "Users can view own achievements"
   ON achievements FOR SELECT
@@ -205,6 +239,10 @@ CREATE TRIGGER on_profiles_updated
 
 CREATE TRIGGER on_habits_updated
   BEFORE UPDATE ON habits
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER on_habit_timeline_entries_updated
+  BEFORE UPDATE ON habit_timeline_entries
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ============================================

@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { getCurrentUserId } from '../queries/habits'
 import type { Category, CreateCategoryInput } from '../lib/types'
 
 const PRESET_CATEGORIES = [
@@ -12,17 +14,22 @@ const PRESET_CATEGORIES = [
 ]
 
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+  const [mutationError, setMutationError] = useState<string | null>(null)
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
+  const userIdQuery = useQuery({
+    queryKey: ['auth', 'user-id'],
+    queryFn: getCurrentUserId,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+  const userId = userIdQuery.data
+
+  const categoriesQuery = useQuery({
+    queryKey: userId ? ['categories', userId] : ['categories'],
+    queryFn: async (): Promise<Category[]> => {
+      if (!userId) return []
 
       const { data, error: fetchError } = await supabase
         .from('categories')
@@ -31,55 +38,40 @@ export function useCategories() {
         .order('name')
 
       if (fetchError) throw fetchError
+      if (data && data.length > 0) return data as Category[]
 
-      // If no categories, create presets
-      if (!data || data.length === 0) {
-        await createPresetCategories(user.id)
-        return
-      }
-
-      setCategories(data)
-    } catch (err) {
-      console.error('Failed to fetch categories:', err)
-      setError('Failed to load categories')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const createPresetCategories = async (userId: string) => {
-    try {
       const presets = PRESET_CATEGORIES.map(name => ({
         user_id: userId,
         name,
         is_preset: true,
       }))
 
-      const { data, error } = await supabase
+      const { error: insertError } = await supabase
         .from('categories')
         .insert(presets)
-        .select()
 
-      if (error) throw error
-      if (data) setCategories(data)
-    } catch (err) {
-      console.error('Failed to create preset categories:', err)
-    }
-  }
+      if (insertError) throw insertError
 
-  useEffect(() => {
-    fetchCategories()
-  }, [fetchCategories])
+      const { data: refreshedData, error: refreshError } = await supabase
+        .from('categories')
+        .select('*')
+        .order('is_preset', { ascending: false })
+        .order('name')
 
-  const createCategory = async (input: CreateCategoryInput): Promise<Category | null> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return null
+      if (refreshError) throw refreshError
+      return (refreshedData || []) as Category[]
+    },
+    enabled: Boolean(userId),
+  })
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (input: CreateCategoryInput): Promise<Category> => {
+      const currentUserId = userId ?? await getCurrentUserId()
 
       const { data, error } = await supabase
         .from('categories')
         .insert({
-          user_id: user.id,
+          user_id: currentUserId,
           name: input.name,
           is_preset: false,
         })
@@ -87,24 +79,40 @@ export function useCategories() {
         .single()
 
       if (error) throw error
+      return data as Category
+    },
+    onMutate: () => {
+      setMutationError(null)
+    },
+    onError: () => {
+      setMutationError('Failed to create category')
+    },
+    onSuccess: async () => {
+      const currentUserId = userId ?? await getCurrentUserId()
+      await queryClient.invalidateQueries({ queryKey: ['categories', currentUserId] })
+    },
+  })
 
-      if (data) {
-        setCategories(prev => [...prev, data])
-      }
-
-      return data
-    } catch (err) {
-      console.error('Failed to create category:', err)
-      setError('Failed to create category')
+  const createCategory = async (input: CreateCategoryInput): Promise<Category | null> => {
+    try {
+      return await createCategoryMutation.mutateAsync(input)
+    } catch {
       return null
     }
   }
 
+  const refetch = async (): Promise<void> => {
+    if (!userId) return
+    await queryClient.invalidateQueries({ queryKey: ['categories', userId] })
+  }
+
   return {
-    categories,
-    loading,
-    error,
+    categories: categoriesQuery.data ?? [],
+    loading: userIdQuery.isPending || categoriesQuery.isPending,
+    error: mutationError
+      ?? (categoriesQuery.error instanceof Error ? categoriesQuery.error.message : null)
+      ?? (userIdQuery.error instanceof Error ? userIdQuery.error.message : null),
     createCategory,
-    refetch: fetchCategories,
+    refetch,
   }
 }

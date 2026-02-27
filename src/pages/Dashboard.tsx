@@ -197,21 +197,6 @@ export function Dashboard() {
         onCreateCategory={handleCreateCategory}
       />
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-black/10 bg-white/95 backdrop-blur-sm px-8 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-        <div className="max-w-[430px] mx-auto flex items-center justify-around text-[#a2a6af]">
-          <button className="text-[#111319]" aria-label="Home">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-10.5z" />
-            </svg>
-          </button>
-          <Link to="/settings" className="hover:text-[#111319]" aria-label="Settings">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19a3 3 0 00-6 0m9 0a6 6 0 10-12 0m9-9a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </Link>
-        </div>
-      </nav>
-
       {selectedHabit && (
         <HabitDetailModal
           habit={selectedHabit}

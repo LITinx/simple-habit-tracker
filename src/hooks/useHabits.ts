@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import {
   getLocalDateString,
@@ -12,6 +13,7 @@ import {
 } from '../lib/utils'
 import { buildOptimisticCompletion, insertCompletion, deleteCompletion } from '../lib/completionsService'
 import { DEFAULT_PROGRESS_QUESTION } from '../lib/types'
+import { fetchHabitsWithCompletions, getCurrentUserId, habitsKeys } from '../queries/habits'
 import type { Habit, CreateHabitInput, UpdateHabitInput, Completion } from '../lib/types'
 
 export interface HabitWithStats extends Habit {
@@ -21,12 +23,25 @@ export interface HabitWithStats extends Habit {
   completions: Completion[]
 }
 
-export function useHabits() {
-  const [habits, setHabits] = useState<HabitWithStats[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const userIdRef = useRef<string | null>(null)
+interface ToggleCompletionVariables {
+  habitId: string
+  date: string
+  wasCompleted: boolean
+  habitUserId: string
+}
 
+interface ToggleCompletionContext {
+  previousHabits?: HabitWithStats[]
+  queryKey?: readonly unknown[]
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
+}
+
+export function useHabits() {
+  const queryClient = useQueryClient()
+  const [mutationError, setMutationError] = useState<string | null>(null)
   const today = getLocalDateString()
 
   const withComputedStats = useCallback((habit: HabitWithStats, completions: Completion[]): HabitWithStats => {
@@ -52,81 +67,33 @@ export function useHabits() {
     }
   }, [today])
 
-  const getCurrentUserId = useCallback(async (): Promise<string> => {
-    if (userIdRef.current) return userIdRef.current
+  const userIdQuery = useQuery({
+    queryKey: ['auth', 'user-id'],
+    queryFn: getCurrentUserId,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+  const userId = userIdQuery.data
 
-    userIdRef.current = user.id
-    return user.id
-  }, [])
+  const habitsQuery = useQuery({
+    queryKey: userId ? habitsKeys.list(userId) : habitsKeys.all,
+    queryFn: async () => {
+      if (!userId) throw new Error('Not authenticated')
+      return fetchHabitsWithCompletions(userId, withComputedStats) as Promise<HabitWithStats[]>
+    },
+    enabled: Boolean(userId),
+  })
 
-  const fetchHabits = useCallback(async () => {
-    try {
-      setError(null)
-      const userId = await getCurrentUserId()
+  const habits = useMemo(() => habitsQuery.data ?? [], [habitsQuery.data])
 
-      // Fetch active habits
-      const { data: habitsData, error: habitsError } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: true })
-
-      if (habitsError) throw habitsError
-
-      const habitIds = (habitsData || []).map(habit => habit.id)
-      let completionsData: Completion[] = []
-
-      if (habitIds.length > 0) {
-        // Fetch completions only for visible habits
-        const { data, error: completionsError } = await supabase
-          .from('completions')
-          .select('*')
-          .in('habit_id', habitIds)
-          .order('completed_date', { ascending: false })
-
-        if (completionsError) throw completionsError
-        completionsData = data || []
-      }
-
-      // Group completions by habit_id
-      const completionsByHabit = new Map<string, Completion[]>()
-      for (const completion of completionsData) {
-        const existing = completionsByHabit.get(completion.habit_id) || []
-        existing.push(completion)
-        completionsByHabit.set(completion.habit_id, existing)
-      }
-
-      const habitsWithStats: HabitWithStats[] = (habitsData || []).map(habit => {
-        const habitCompletions = completionsByHabit.get(habit.id) || []
-        return withComputedStats({ ...habit, completedToday: false, currentStreak: 0, longestStreak: 0, completions: [] }, habitCompletions)
-      })
-
-      setHabits(habitsWithStats)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch habits')
-    } finally {
-      setLoading(false)
-    }
-  }, [getCurrentUserId, withComputedStats])
-
-  useEffect(() => {
-    fetchHabits()
-  }, [fetchHabits])
-
-  const createHabit = async (input: CreateHabitInput): Promise<Habit | null> => {
-    try {
-      setError(null)
-
-      const userId = await getCurrentUserId()
-
+  const createHabitMutation = useMutation({
+    mutationFn: async (input: CreateHabitInput): Promise<Habit> => {
+      const currentUserId = userId ?? await getCurrentUserId()
       const { data, error } = await supabase
         .from('habits')
         .insert({
-          user_id: userId,
+          user_id: currentUserId,
           name: input.name.trim(),
           description: input.description?.trim() || null,
           frequency_type: input.frequency_type || 'daily',
@@ -140,87 +107,22 @@ export function useHabits() {
         .single()
 
       if (error) throw error
+      return data as Habit
+    },
+    onMutate: () => {
+      setMutationError(null)
+    },
+    onError: (error) => {
+      setMutationError(getErrorMessage(error, 'Failed to create habit'))
+    },
+    onSuccess: async () => {
+      const currentUserId = userId ?? await getCurrentUserId()
+      await queryClient.invalidateQueries({ queryKey: habitsKeys.list(currentUserId) })
+    },
+  })
 
-      // Add to local state with initial stats
-      setHabits(prev => [...prev, {
-        ...data,
-        completedToday: false,
-        currentStreak: 0,
-        longestStreak: 0,
-        completions: [],
-      }])
-
-      return data
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create habit')
-      return null
-    }
-  }
-
-  const toggleCompletionAtDate = async (habitId: string, date: string): Promise<boolean> => {
-    if (date > today || !isWithinDays(date, 7)) {
-      setError('Can only edit completions from the past 7 days')
-      return false
-    }
-
-    const habit = habits.find(h => h.id === habitId)
-    if (!habit) return false
-
-    const wasCompleted = habit.completions.some(c => c.completed_date === date)
-    const previousHabit = habit
-
-    try {
-      setError(null)
-
-      if (wasCompleted) {
-        const optimisticCompletions = habit.completions.filter(c => c.completed_date !== date)
-        setHabits(prev => prev.map(h => (h.id === habitId ? withComputedStats(h, optimisticCompletions) : h)))
-        await deleteCompletion({ habitId, completedDate: date })
-      } else {
-        const tempCompletion = buildOptimisticCompletion(habitId, habit.user_id, date)
-        const optimisticCompletions = [tempCompletion, ...habit.completions]
-        setHabits(prev => prev.map(h => (h.id === habitId ? withComputedStats(h, optimisticCompletions) : h)))
-
-        const userId = await getCurrentUserId()
-        await insertCompletion({ habitId, userId, completedDate: date })
-      }
-
-      return true
-    } catch (err) {
-      setHabits(prev => prev.map(h => (h.id === habitId ? previousHabit : h)))
-      setError(err instanceof Error ? err.message : 'Failed to toggle completion')
-      return false
-    }
-  }
-
-  const toggleCompletion = async (habitId: string): Promise<boolean> => toggleCompletionAtDate(habitId, today)
-
-  const toggleCompletionForDate = async (habitId: string, date: string): Promise<boolean> =>
-    toggleCompletionAtDate(habitId, date)
-
-  const updateHabit = async (habitId: string, input: UpdateHabitInput): Promise<boolean> => {
-    const previousHabit = habits.find(h => h.id === habitId)
-    if (!previousHabit) return false
-
-    const optimisticHabit: HabitWithStats = {
-      ...previousHabit,
-      ...(input.name !== undefined && { name: input.name.trim() }),
-      ...(input.description !== undefined && { description: input.description?.trim() || null }),
-      ...(input.frequency_type !== undefined && { frequency_type: input.frequency_type }),
-      ...(input.frequency_value !== undefined && { frequency_value: input.frequency_value }),
-      ...(input.weekly_streak_mode !== undefined && { weekly_streak_mode: input.weekly_streak_mode }),
-      ...(input.category_id !== undefined && { category_id: input.category_id }),
-      ...(input.motivation_note !== undefined && { motivation_note: input.motivation_note?.trim() || null }),
-      ...(input.progress_question !== undefined && { progress_question: input.progress_question?.trim() || null }),
-      ...(input.is_active !== undefined && { is_active: input.is_active }),
-    }
-
-    try {
-      setError(null)
-      setHabits(prev =>
-        prev.map(h => (h.id === habitId ? withComputedStats(optimisticHabit, optimisticHabit.completions) : h))
-      )
-
+  const updateHabitMutation = useMutation({
+    mutationFn: async ({ habitId, input }: { habitId: string; input: UpdateHabitInput }): Promise<void> => {
       const { error } = await supabase
         .from('habits')
         .update({
@@ -238,46 +140,156 @@ export function useHabits() {
         .eq('id', habitId)
 
       if (error) throw error
+    },
+    onMutate: () => {
+      setMutationError(null)
+    },
+    onError: (error) => {
+      setMutationError(getErrorMessage(error, 'Failed to update habit'))
+    },
+    onSuccess: async () => {
+      const currentUserId = userId ?? await getCurrentUserId()
+      await queryClient.invalidateQueries({ queryKey: habitsKeys.list(currentUserId) })
+    },
+  })
 
-      return true
-    } catch (err) {
-      setHabits(prev => prev.map(h => (h.id === habitId ? previousHabit : h)))
-      setError(err instanceof Error ? err.message : 'Failed to update habit')
-      return false
-    }
-  }
-
-  const deleteHabit = async (habitId: string): Promise<boolean> => {
-    try {
-      setError(null)
-
-      // Soft delete by setting is_active to false
+  const deleteHabitMutation = useMutation({
+    mutationFn: async (habitId: string): Promise<void> => {
       const { error } = await supabase
         .from('habits')
         .update({ is_active: false })
         .eq('id', habitId)
 
       if (error) throw error
+    },
+    onMutate: () => {
+      setMutationError(null)
+    },
+    onError: (error) => {
+      setMutationError(getErrorMessage(error, 'Failed to delete habit'))
+    },
+    onSuccess: async () => {
+      const currentUserId = userId ?? await getCurrentUserId()
+      await queryClient.invalidateQueries({ queryKey: habitsKeys.list(currentUserId) })
+    },
+  })
 
-      // Remove from local state
-      setHabits(prev => prev.filter(h => h.id !== habitId))
+  const toggleCompletionMutation = useMutation<void, unknown, ToggleCompletionVariables, ToggleCompletionContext>({
+    mutationFn: async ({ habitId, date, wasCompleted }) => {
+      if (wasCompleted) {
+        await deleteCompletion({ habitId, completedDate: date })
+        return
+      }
 
+      const currentUserId = userId ?? await getCurrentUserId()
+      await insertCompletion({ habitId, userId: currentUserId, completedDate: date })
+    },
+    onMutate: async ({ habitId, date, wasCompleted, habitUserId }) => {
+      setMutationError(null)
+      const currentUserId = userId ?? await getCurrentUserId()
+      const queryKey = habitsKeys.list(currentUserId)
+
+      await queryClient.cancelQueries({ queryKey })
+      const previousHabits = queryClient.getQueryData<HabitWithStats[]>(queryKey)
+      if (!previousHabits) return { previousHabits, queryKey }
+
+      const updatedHabits = previousHabits.map((habit) => {
+        if (habit.id !== habitId) return habit
+
+        const optimisticCompletions = wasCompleted
+          ? habit.completions.filter((completion) => completion.completed_date !== date)
+          : [buildOptimisticCompletion(habitId, habitUserId, date), ...habit.completions]
+
+        return withComputedStats(habit, optimisticCompletions)
+      })
+
+      queryClient.setQueryData(queryKey, updatedHabits)
+      return { previousHabits, queryKey }
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previousHabits && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousHabits)
+      }
+
+      setMutationError(getErrorMessage(error, 'Failed to toggle completion'))
+    },
+    onSettled: async () => {
+      const currentUserId = userId ?? await getCurrentUserId()
+      await queryClient.invalidateQueries({ queryKey: habitsKeys.list(currentUserId) })
+    },
+  })
+
+  const createHabit = async (input: CreateHabitInput): Promise<Habit | null> => {
+    try {
+      return await createHabitMutation.mutateAsync(input)
+    } catch {
+      return null
+    }
+  }
+
+  const updateHabit = async (habitId: string, input: UpdateHabitInput): Promise<boolean> => {
+    try {
+      await updateHabitMutation.mutateAsync({ habitId, input })
       return true
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete habit')
+    } catch {
       return false
     }
   }
 
+  const deleteHabit = async (habitId: string): Promise<boolean> => {
+    try {
+      await deleteHabitMutation.mutateAsync(habitId)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const toggleCompletionAtDate = async (habitId: string, date: string): Promise<boolean> => {
+    if (date > today || !isWithinDays(date, 7)) {
+      setMutationError('Can only edit completions from the past 7 days')
+      return false
+    }
+
+    const habit = habits.find((existingHabit) => existingHabit.id === habitId)
+    if (!habit) return false
+
+    const wasCompleted = habit.completions.some((completion) => completion.completed_date === date)
+
+    try {
+      await toggleCompletionMutation.mutateAsync({
+        habitId,
+        date,
+        wasCompleted,
+        habitUserId: habit.user_id,
+      })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const toggleCompletion = async (habitId: string): Promise<boolean> => toggleCompletionAtDate(habitId, today)
+
+  const toggleCompletionForDate = async (habitId: string, date: string): Promise<boolean> =>
+    toggleCompletionAtDate(habitId, date)
+
+  const refetch = async (): Promise<void> => {
+    if (!userId) return
+    await queryClient.invalidateQueries({ queryKey: habitsKeys.list(userId) })
+  }
+
   return {
     habits,
-    loading,
-    error,
+    loading: userIdQuery.isPending || habitsQuery.isPending,
+    error: mutationError
+      ?? (habitsQuery.error instanceof Error ? habitsQuery.error.message : null)
+      ?? (userIdQuery.error instanceof Error ? userIdQuery.error.message : null),
     createHabit,
     updateHabit,
     toggleCompletion,
     toggleCompletionForDate,
     deleteHabit,
-    refetch: fetchHabits,
+    refetch,
   }
 }
